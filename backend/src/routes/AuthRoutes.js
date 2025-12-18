@@ -9,6 +9,6 @@ AuthRouter.get('/health', (req, res) => {
 AuthRouter.post('/login', AuthController.login);
 AuthRouter.post('/signup', AuthController.signup);
 AuthRouter.post('/logout', AuthController.logout);
-AuthRouter.post('/me', JwtMiddleware.verify, AuthController.me);
+AuthRouter.get('/me', JwtMiddleware.verify, AuthController.me);
 
 module.exports = AuthRouter;

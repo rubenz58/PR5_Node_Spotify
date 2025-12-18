@@ -19,7 +19,10 @@ module.exports = {
     signup(req, res) {
         try {
             const result = AuthServices.signup(req.body);
-            return res.status(201).json({ result });
+            return res.status(201).json({
+                message: "User created successfully",
+                ...result
+            });
         } catch (err) {
             return res.status(400).json({ error: err.message });
         }
@@ -29,7 +32,12 @@ module.exports = {
         return res.json({ route: "/logout"});
     },
 
-    me() {
-        return res.json({ route: "/me"});
+    me(req, res) {
+        try {
+            const result = AuthServices.getUser(req.user)
+            return res.json(result);
+        } catch (err) {
+            return res.status(400).json({ error: err.message });
+        }
     }
 }
