@@ -1,7 +1,10 @@
+const { User } = require('../../models');
+const bcrypt = require('bcrypt');
+
 const JwtServices = require('./JwtServices');
 
 module.exports = {
-    login({ email, password }) {
+    async login({ email, password }) {
         // Do checks
         if (!email || !password) {
             const error = new Error("invalid user or message");
@@ -9,14 +12,25 @@ module.exports = {
             throw error;
         }
 
-        // Get user based on email
-        // Check password against hashed password.
-        const user = {
-            email
-        };
+        const user = await User.findOne({ where: { email }});
+
+        if(!user) {
+            const error = new Error("Invalid credentials");
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+
+        if (!isValidPassword) {
+            const error = new Error("Invalid credentials");
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const token = JwtServices.sign(email);
 
         try {
-            const token = JwtServices.sign(email);
             return {
                 token,
                 user
@@ -26,7 +40,7 @@ module.exports = {
         }
     },
 
-    signup({ email, password, name }) {
+    async signup({ email, password, name }) {
 
         // Do checks
         if (!email || !password || !name) {
@@ -35,23 +49,33 @@ module.exports = {
             throw error;
         }
 
-        // Check if the email already exists in the db.
-        // Hash password, create new User
-
-        // Get user based on email
-        // Check password against hashed password.
-        const user = {
-            email
-        };
-
         try {
-            const token = JwtServices.sign(email);
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            const newUser = await User.create({
+                email,
+                name,
+                passwordHash
+            });
+
+            const token = JwtServices.sign(newUser.id);
+
             return {
                 token,
-                user
+                user: {
+                    id: newUser.id,
+                    email: newUser.email,
+                    name: newUser.name
+                }
             };
+
         } catch (err) {
-            return err;
+            if (err.name === 'SequelizeUniqueConstraintError') {
+                const error = new Error("User with this email or name already exists");
+                error.statusCode = 409;
+                throw error;
+            }
+            throw err;
         }
     },
 
